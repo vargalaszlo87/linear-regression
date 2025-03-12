@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
 
 # Contact
 
-Varga Laszlo - https://vargalaszlo.com - mail@vargalaszlo.com.com
+Varga Laszlo - https://vargalaszlo.com - mail@vargalaszlo.com
 
 Project Link: https://github.com/vargalaszlo87/linear-regression
 
