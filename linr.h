@@ -1,34 +1,31 @@
-#ifndef LINR_H_INCLUDED
-#define LINR_H_INCLUDED
+#ifndef LINR_H
+#define LINR_H
 
 #include <stdbool.h>
+#include <stddef.h>
 
-typedef struct Data {
-    double* x;
-    double* y;
-    int N;
-    int counter;
-} Data, *pData;
+typedef struct {
+    size_t n;
+    double meanX;
+    double meanY;
+    double Sxx;
+    double Sxy;
+    double Syy;
+    double m;
+    double b;
+    bool calculated;
+} Result;
 
-typedef struct Result {
-    double sumX;
-    double sumY;
-    double sumXY;
-    double sumX2;
-    double sumY2;
-    double m;       // coeffitient
-    double b;       // constant
-    int N;
-} Result, *pResult;
+void linRInit(Result *r);
+bool linRPush(Result *r, double x, double y);
+bool linRCalc(Result *r);
 
-bool calcCoeffitient(Result*);
-bool calcConstantTerm(Result*);
-bool linRInit(Data* d, Result*);
-bool linRPushData(Data*, Result*, double, double);
-double linRPredict(Result* r, double x);
-void linRShow (Result*);
-void linRCalc(Result*);
-double linRErrorSquare(Data*, Result*);
-double linRError(Data*, Result*, double);
+double linRPredict(const Result *r, double x);
+double linRError(const Result *r, double x, double y);
+double linRErrorSquare(const Result *r);
+double linRTotalSquare(const Result *r);
+double linRR2(const Result *r);
+
+void linRShow(const Result *r);
 
 #endif
