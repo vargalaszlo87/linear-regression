@@ -456,9 +456,6 @@ See the repository for license information.
 
 Website: https://vargalaszlo.com
 Email: [mail@vargalaszlo.com](mailto:mail@vargalaszlo.com)
-
-Project:
-
-https://github.com/vargalaszlo87/linear-regression
+Project: https://github.com/vargalaszlo87/linear-regression
 
 [![portfolio](https://img.shields.io/badge/my_portfolio-000?style=for-the-badge\&logo=ko-fi\&logoColor=white)](http://vargalaszlo.com)
