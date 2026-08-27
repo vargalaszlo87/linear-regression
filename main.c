@@ -2,19 +2,15 @@
 // linear regression (y = mx + b)
 
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
-#include <math.h>
+#include <stddef.h>
 
 #include "linr.h"
 
-int main(int argc, char *argv[]) {
-
-    Data data;
+int main(int argc, char *argv[])
+{
     Result result;
 
-    // TEST DATAS
-    double XY[84][2] = {
+    double XY[][2] = {
         {1714, 2.4},
         {1664, 2.52},
         {1760, 2.54},
@@ -100,28 +96,44 @@ int main(int argc, char *argv[]) {
         {1962, 3.76},
         {2050, 3.81}
     };
-    data.N = 84;
-    // /TEST DATAS
 
-    // Init
-    linRInit(&data, &result);
+    size_t i;
+    size_t N;
 
-    // Push datas
-    for (int i = 0; i < data.N; i++)
-        linRPushData(&data, &result, XY[i][0], XY[i][1]);
+    double X;
+    double predictedY;
+    double err2;
+    double r2;
 
-    // Calc equation y = mx + b
-    linRCalc(&result);
-    // Show the eq.
+    (void)argc;
+    (void)argv;
+
+    N = sizeof(XY) / sizeof(XY[0]);
+
+    linRInit(&result);
+
+    for (i = 0; i < N; i++) {
+        if (!linRPush(&result, XY[i][0], XY[i][1])) {
+            fprintf(stderr, "Failed to add data point at index %zu.\n", i);
+            return 1;
+        }
+    }
+
+    if (!linRCalc(&result)) {
+        fprintf(stderr, "Linear regression calculation failed.\n");
+        return 1;
+    }
+
     linRShow(&result);
 
-    // Predict: which Y belongs to this X
-    double X = 2050.123;
-    double predictedY = linRPredict(&result, X);
-    double err2 = linRErrorSquare(&data, &result);
+    X = 2050.123;
+    predictedY = linRPredict(&result, X);
+    err2 = linRErrorSquare(&result);
+    r2 = linRR2(&result);
 
-    printf ("Predicted Y = f(%lf) = %lf with %lf error^2\n", X, predictedY, err2);
-
+    printf("Predicted Y = f(%lf) = %lf\n", X, predictedY);
+    printf("Error^2 = %lf\n", err2);
+    printf("R^2 = %lf\n", r2);
 
     return 0;
 }
