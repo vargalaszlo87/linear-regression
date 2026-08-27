@@ -1,81 +1,151 @@
 #include <stdio.h>
-#include <stdlib.h>
-#include <stdbool.h>
 #include <math.h>
 
 #include "linr.h"
 
-bool calcCoeffitient(Result* r) {
-    double a = r->N * r->sumXY - r->sumX * r->sumY;
-    double b = r->N * r->sumX2 - pow(r->sumX, 2);
-    r->m = a / b;
-    return true;
+#define LINR_EPSILON 1e-15
+
+void linRInit(Result *r)
+{
+    if (!r)
+        return;
+
+    r->n = 0;
+    r->meanX = 0.0;
+    r->meanY = 0.0;
+    r->Sxx = 0.0;
+    r->Sxy = 0.0;
+    r->Syy = 0.0;
+    r->m = 0.0;
+    r->b = 0.0;
+    r->calculated = false;
 }
 
-bool calcConstantTerm(Result *r) {
-    double a = r->sumY * r->sumX2 - r->sumX * r->sumXY;
-    double b = r->N * r->sumX2 - pow(r->sumX, 2);
-    r->b = a / b;
-    return true;
-}
+bool linRPush(Result *r, double x, double y)
+{
+    double dx, dy;
 
-bool linRInit(Data* d, Result* r) {
-    if (d->N < 1)
+    if (!r)
         return false;
-    d->x = (double*)calloc(d->N, sizeof(double));
-    d->y = (double*)calloc(d->N, sizeof(double));
-    if (!d->x || !d->y)
+
+    if (!isfinite(x) || !isfinite(y))
         return false;
-    d->counter = 0;
-    r->m = 0;
-    r->b = 0;
-    r->sumX = 0;
-    r->sumY = 0;
-    r->sumXY = 0;
-    r->sumX2 = 0;
-    r->sumY2 = 0;
-    r->N = d->N;
+
+    r->n++;
+
+    dx = x - r->meanX;
+    dy = y - r->meanY;
+
+    r->meanX += dx / r->n;
+    r->meanY += dy / r->n;
+
+    r->Sxx += dx * (x - r->meanX);
+    r->Sxy += dx * (y - r->meanY);
+    r->Syy += dy * (y - r->meanY);
+
+    r->calculated = false;
+
     return true;
 }
 
-bool linRPushData(Data *d, Result* r, double x, double y) {
-    r->sumXY += x*y;
-    r->sumX += x;
-    r->sumY += y;
-    r->sumX2 += pow(x, 2);
-    r->sumY2 += pow(y, 2);
-    d->x[d->counter] = x;
-    d->y[d->counter] = y;
-    d->counter++;
+bool linRCalc(Result *r)
+{
+    double tolerance;
+
+    if (!r || r->n < 2)
+        return false;
+
+    tolerance = LINR_EPSILON * fmax(1.0, r->meanX * r->meanX * r->n);
+
+    if (fabs(r->Sxx) <= tolerance)
+        return false;
+
+    r->m = r->Sxy / r->Sxx;
+    r->b = r->meanY - r->m * r->meanX;
+
+    if (!isfinite(r->m) || !isfinite(r->b))
+        return false;
+
+    r->calculated = true;
+
     return true;
 }
 
-double linRPredict(Result* r, double x) {
+double linRPredict(const Result *r, double x)
+{
+    if (!r || !r->calculated)
+        return NAN;
+
+    if (!isfinite(x))
+        return NAN;
+
     return r->m * x + r->b;
 }
 
-void linRShow(Result* r) {
-    printf ("y = %lfx + %lf\n", r->m, r->b);
+double linRError(const Result *r, double x, double y)
+{
+    double prediction;
+
+    if (!r)
+        return NAN;
+
+    if (!isfinite(x) || !isfinite(y))
+        return NAN;
+
+    prediction = linRPredict(r, x);
+
+    if (!isfinite(prediction))
+        return NAN;
+
+    return y - prediction;
 }
 
-void linRCalc(Result *r) {
-    if (r->m == 0.0 && r->b == 0.0)
-        calcCoeffitient(r),
-        calcConstantTerm(r);
+double linRErrorSquare(const Result *r)
+{
+    double rss;
+
+    if (!r || !r->calculated)
+        return NAN;
+
+    rss = r->Syy - r->m * r->Sxy;
+
+    if (rss < 0.0 && fabs(rss) < LINR_EPSILON)
+        rss = 0.0;
+
+    return rss;
 }
 
-double linRErrorSquare(Data *d, Result *r) {
-    double temp = 0.0;
-    int i = -1;
-    while (++i < d->N)
-        temp += pow(linRPredict(r, d->x[i]) - d->y[i],2);
-    return temp;
+double linRTotalSquare(const Result *r)
+{
+    if (!r || !r->n)
+        return NAN;
+
+    return r->Syy;
 }
 
-double linRError(Data* d, Result* r, double x) {
-    int i = -1;
-    while (++i < d->N)
-        if (x == d->x[i])
-            return d->y[i] - linRPredict(r, d->x[i]);
-    return 0.0;
+double linRR2(const Result *r)
+{
+    double rss, tss;
+
+    if (!r || !r->calculated)
+        return NAN;
+
+    rss = linRErrorSquare(r);
+    tss = linRTotalSquare(r);
+
+    if (!isfinite(rss) || !isfinite(tss))
+        return NAN;
+
+    if (fabs(tss) <= LINR_EPSILON)
+        return NAN;
+
+    return 1.0 - rss / tss;
+}
+
+void linRShow(const Result *r)
+{
+    if (!r || !r->calculated)
+        return;
+
+    printf("y = %lfx + %lf\n", r->m, r->b);
 }
